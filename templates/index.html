@@ -7,8 +7,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #2e7d32; /* Neighborhood Green */
-            --accent: #1976d2; /* Pulse Blue */
+            --primary: #2e7d32;
+            --accent: #1976d2;
             --bg: #f8f9fa;
             --card: #ffffff;
             --text: #333333;
@@ -38,20 +38,24 @@
         h1 { font-weight: 700; color: var(--primary); margin-bottom: 8px; }
         .tagline { color: #666; font-size: 1.1rem; }
 
-        /* Real-Time Feed Styling */
         .section-label { font-weight: 600; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
         .pulse-dot { width: 10px; height: 10px; background: red; border-radius: 50%; animation: blink 1.5s infinite; }
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
 
-        #live-feed {
+        /* UI Components */
+        .card-box {
             background: var(--card);
+            padding: 25px;
             border-radius: 12px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            height: 250px;
-            overflow-y: auto;
-            padding: 20px;
+            margin-bottom: 30px;
             border: 1px solid #eee;
-            margin-bottom: 40px;
+        }
+
+        #live-feed {
+            height: 200px;
+            overflow-y: auto;
+            padding: 10px;
         }
 
         .feed-item {
@@ -63,15 +67,6 @@
         }
 
         @keyframes slideIn { from { transform: translateY(-10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-
-        /* Search Styling */
-        .search-box {
-            background: var(--card);
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            text-align: center;
-        }
 
         input[type="text"] {
             width: 70%;
@@ -93,13 +88,13 @@
             border-radius: 25px;
             font-weight: 600;
             cursor: pointer;
-            margin-left: 10px;
-            transition: transform 0.1s;
+            transition: background 0.2s;
         }
 
-        button:active { transform: scale(0.98); }
+        button:hover { opacity: 0.9; }
+        .btn-post { background-color: var(--primary); }
 
-        #results { margin-top: 20px; text-align: left; }
+        #results { margin-top: 20px; }
         .result-card {
             background: #e3f2fd;
             padding: 15px;
@@ -114,17 +109,23 @@
 <div class="container">
     <header>
         <h1>Neighbor Pulse 📡</h1>
-        <p class="tagline">Real-time surplus sharing for the community.</p>
+        <p class="tagline">Real-time community exchange powered by AI.</p>
     </header>
 
-    <div class="section-label"><div class="pulse-dot"></div> Live Neighborhood Feed</div>
-    <div id="live-feed">
-        <p style="color:#999; text-align:center; padding-top:80px;">Listening for neighborhood activity...</p>
+    <div class="section-label">📢 Post a New Item</div>
+    <div class="card-box">
+        <input type="text" id="newItem" placeholder="What do you have to share?">
+        <button class="btn-post" onclick="postItem()">Post to Pulse</button>
     </div>
 
-    <div class="search-box">
-        <h3 style="margin-top:0;">What are you looking for?</h3>
-        <input type="text" id="query" placeholder="e.g. garden tools, baby clothes...">
+    <div class="section-label"><div class="pulse-dot"></div> Live Neighborhood Pulse</div>
+    <div class="card-box" id="live-feed">
+        <p style="color:#999; text-align:center; padding-top:60px;">Listening for activity...</p>
+    </div>
+
+    <div class="section-label">🔍 Semantic AI Search</div>
+    <div class="card-box" style="text-align: center;">
+        <input type="text" id="query" placeholder="I'm looking for...">
         <button onclick="doSearch()">Find Matches</button>
         <div id="results"></div>
     </div>
@@ -137,31 +138,41 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // REAL-TIME LISTENER: Updates the feed instantly when a new item is posted in Firestore
+    // REAL-TIME LISTENER
     db.collection("items").onSnapshot((snapshot) => {
-    const feed = document.getElementById("live-feed");
-    
-    // Clear placeholder if data exists
-    if (snapshot.size > 0 && feed.querySelector('p')) {
-        feed.innerHTML = ""; 
-    }
-    
-    snapshot.docChanges().forEach((change) => {
-        if (change.type === "added") {
-            const item = change.doc.data();
-            const div = document.createElement("div");
-            div.className = "feed-item";
-            
-            // Use 'description' which we know exists from your logs
-            div.innerHTML = `<span>🆕 <b>Neighbor:</b> ${item.description}</span>`;
-            feed.prepend(div);
-        }
+        const feed = document.getElementById("live-feed");
+        if (snapshot.size > 0 && feed.querySelector('p')) feed.innerHTML = ""; 
+        
+        snapshot.docChanges().forEach((change) => {
+            if (change.type === "added") {
+                const item = change.doc.data();
+                const div = document.createElement("div");
+                div.className = "feed-item";
+                div.innerHTML = `<span>🆕 <b>Item:</b> ${item.description}</span>`;
+                feed.prepend(div);
+            }
+        });
     });
-}, (error) => {
-    console.error("Pulse Error:", error);
-    document.getElementById("live-feed").innerHTML = `<p style="color:red;">Error: ${error.message}</p>`;
-});
 
+    // POST DATA DIRECTLY
+    async function postItem() {
+        const description = document.getElementById("newItem").value;
+        if (!description) return alert("Please type something!");
+
+        const response = await fetch('/add', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({description})
+        });
+
+        if (response.ok) {
+            document.getElementById("newItem").value = ""; 
+        } else {
+            alert("Error posting item.");
+        }
+    }
+
+    // SEARCH DATA
     async function doSearch() {
         const query = document.getElementById("query").value;
         const resultsDiv = document.getElementById("results");
@@ -177,11 +188,11 @@
             
             resultsDiv.innerHTML = matches.map(m => `
                 <div class="result-card">
-                    <b>Match:</b> ${m.desc}
+                    <b>Match:</b> ${m.description}
                 </div>
             `).join('');
         } catch (e) {
-            resultsDiv.innerHTML = "<p style='color:red;'>Search failed. Ensure your Flask server is running.</p>";
+            resultsDiv.innerHTML = "<p style='color:red;'>Search failed.</p>";
         }
     }
 </script>
