@@ -1,0 +1,21 @@
+# Virtual Environment (The biggest one to stop!)
+.venv/
+venv/
+env/
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Project IDX & Nix artifacts (if any)
+.direnv/
+result
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Environment variables (for future secrets)
+.env
